@@ -92,11 +92,44 @@ function App() {
         });
     };
 
+    // 🚀 Обновляем положение узлов при перемещении
+    const onNodeDragStop = (event, node) => {
+        fetch(`${API_URL}/nodes/${node.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ label: node.data.label, x: node.position.x, y: node.position.y }),
+        }).then(() => {
+            setNodes((nds) =>
+                nds.map((n) =>
+                    n.id === node.id ? { ...n, position: { x: node.position.x, y: node.position.y } } : n
+                )
+            );
+        });
+    };
+
+    // 🚀 Обновляем текст узла (редактируемый инпут)
+    const onNodeDoubleClick = (event, node) => {
+        const newLabel = prompt("Введите новый текст:", node.data.label);
+        if (newLabel !== null) {
+            fetch(`${API_URL}/nodes/${node.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ label: newLabel, x: node.position.x, y: node.position.y }),
+            }).then(() => {
+                setNodes((nds) =>
+                    nds.map((n) =>
+                        n.id === node.id ? { ...n, data: { label: newLabel } } : n
+                    )
+                );
+            });
+        }
+    };
+
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
             <button
                 onClick={addNode}
-                className="absolute z-10 top-4 left-4 bg-red-500 text-white px-3 py-1 rounded"
+                className="absolute z-10 top-4 left-4 bg-green-500 text-white px-3 py-1 rounded"
             >
                 Добавить карточку
             </button>
@@ -107,6 +140,8 @@ function App() {
                 onConnect={onConnect}
                 onNodesDelete={onNodesDelete}
                 onEdgesDelete={onEdgesDelete}
+                onNodeDragStop={onNodeDragStop}
+                onNodeDoubleClick={onNodeDoubleClick}
             >
                 <Background />
                 <Controls />
