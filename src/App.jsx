@@ -26,13 +26,15 @@ function App() {
                     id: edge.id.toString(),
                     source: edge.sourceId.toString(),
                     target: edge.targetId.toString(),
+                    label: edge.description,
                 })));
             });
     }, []);
 
+    // 🚀 Добавление нового узла
     const addNode = () => {
         const newNode = {
-            label: `Карточка ${nodes.length + 1}`,
+            label: `Node ${nodes.length + 1}`,
             x: 50 * nodes.length,
             y: 50 * nodes.length,
         };
@@ -55,24 +57,38 @@ function App() {
             });
     };
 
+    // 🚀 Очистка всей доски
+    const clearBoard = () => {
+        fetch(`${API_URL}/nodes/clear`, { method: "DELETE" })
+            .then(() => {
+                setNodes([]);
+                setEdges([]);
+            });
+    };
+
+    // 🚀 Добавление связи (edges)
     const onConnect = useCallback(
         (connection) => {
-            fetch(`${API_URL}/edges`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ sourceId: connection.source, targetId: connection.target }),
-            })
-                .then((res) => res.json())
-                .then((savedEdge) => {
-                    setEdges((eds) => [
-                        ...eds,
-                        { id: savedEdge.id.toString(), source: savedEdge.sourceId, target: savedEdge.targetId },
-                    ]);
-                });
+            const description = prompt("Enter a description for this connection:", "Default description");
+            if (description !== null) {
+                fetch(`${API_URL}/edges`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ sourceId: connection.source, targetId: connection.target, description }),
+                })
+                    .then((res) => res.json())
+                    .then((savedEdge) => {
+                        setEdges((eds) => [
+                            ...eds,
+                            { id: savedEdge.id.toString(), source: savedEdge.sourceId, target: savedEdge.targetId, label: savedEdge.description },
+                        ]);
+                    });
+            }
         },
         [setEdges]
     );
 
+    // 🚀 Удаление узлов
     const onNodesDelete = (deletedNodes) => {
         deletedNodes.forEach((node) => {
             fetch(`${API_URL}/nodes/${node.id}`, { method: "DELETE" })
@@ -83,6 +99,7 @@ function App() {
         });
     };
 
+    // 🚀 Удаление связей
     const onEdgesDelete = (deletedEdges) => {
         deletedEdges.forEach((edge) => {
             fetch(`${API_URL}/edges/${edge.id}`, { method: "DELETE" })
@@ -92,7 +109,7 @@ function App() {
         });
     };
 
-    // 🚀 Обновляем положение узлов при перемещении
+    // 🚀 Перемещение узлов
     const onNodeDragStop = (event, node) => {
         fetch(`${API_URL}/nodes/${node.id}`, {
             method: "PUT",
@@ -107,9 +124,9 @@ function App() {
         });
     };
 
-    // 🚀 Обновляем текст узла (редактируемый инпут)
+    // 🚀 Редактирование текста узла
     const onNodeDoubleClick = (event, node) => {
-        const newLabel = prompt("Введите новый текст:", node.data.label);
+        const newLabel = prompt("Enter new text:", node.data.label);
         if (newLabel !== null) {
             fetch(`${API_URL}/nodes/${node.id}`, {
                 method: "PUT",
@@ -125,14 +142,40 @@ function App() {
         }
     };
 
+    // 🚀 Редактирование описания связи (edges)
+    const onEdgesDoubleClick = (event, edge) => {
+        const newDescription = prompt("Update connection description:", edge.label);
+        if (newDescription !== null) {
+            fetch(`${API_URL}/edges/${edge.id}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ description: newDescription }),
+            }).then(() => {
+                setEdges((eds) =>
+                    eds.map((e) =>
+                        e.id === edge.id ? { ...e, label: newDescription } : e
+                    )
+                );
+            });
+        }
+    };
+
     return (
         <div style={{ width: '100vw', height: '100vh' }}>
-            <button
-                onClick={addNode}
-                className="absolute z-10 top-4 left-4 bg-green-500 text-white px-3 py-1 rounded"
-            >
-                Добавить карточку
-            </button>
+            <div className="absolute z-10 top-4 left-4 flex gap-2">
+                <button
+                    onClick={addNode}
+                    className="bg-green-500 text-white px-3 py-1 rounded"
+                >
+                    Add Node
+                </button>
+                <button
+                    onClick={clearBoard}
+                    className="bg-red-500 text-white px-3 py-1 rounded"
+                >
+                    Clear Board
+                </button>
+            </div>
 
             <ReactFlow
                 nodes={nodes}
@@ -142,6 +185,7 @@ function App() {
                 onEdgesDelete={onEdgesDelete}
                 onNodeDragStop={onNodeDragStop}
                 onNodeDoubleClick={onNodeDoubleClick}
+                onEdgesDoubleClick={onEdgesDoubleClick}
             >
                 <Background />
                 <Controls />
