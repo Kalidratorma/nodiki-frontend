@@ -1,10 +1,5 @@
 import React from "react";
-import {
-    Handle,
-    NodeProps,
-    Position,
-    useReactFlow,
-} from "reactflow";
+import { Handle, NodeProps, Position } from "reactflow";
 
 const NodeComponent: React.FC<NodeProps> = ({
                                                 id,
@@ -13,13 +8,17 @@ const NodeComponent: React.FC<NodeProps> = ({
                                                 dragging,
                                                 isConnectable,
                                             }) => {
-    const { setNodes } = useReactFlow();
-
     const handleDoubleClick = () => {
         const newLabel = prompt("Edit node label:", data.label);
         if (newLabel !== null && newLabel !== data.label) {
             data.onEdit?.(id, newLabel);
         }
+    };
+
+    const handleDragStart = (
+        event: React.MouseEvent<HTMLDivElement, MouseEvent>
+    ) => {
+        event.stopPropagation();
     };
 
     return (
@@ -28,6 +27,7 @@ const NodeComponent: React.FC<NodeProps> = ({
                 dragging ? "dragging" : ""
             }`}
             onDoubleClick={handleDoubleClick}
+            onDragStart={handleDragStart}
         >
             <Handle
                 type="target"

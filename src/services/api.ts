@@ -1,6 +1,5 @@
 import config from "../config/config";
 
-// Тип для одной ноды, приходящей с сервера
 export interface NodeData {
   id: string | number;
   label: string;
@@ -8,7 +7,6 @@ export interface NodeData {
   y: number;
 }
 
-// Тип для связи, приходящей с сервера
 export interface EdgeData {
   id: string | number;
   sourceId: string | number;
@@ -38,8 +36,43 @@ export const deleteAllNodes = async (): Promise<void> => {
   });
 };
 
+export const updateNode = async (
+    id: string,
+    newLabel: string
+): Promise<void> => {
+  await fetch(`${config.API_URL}/nodes/${id}`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ label: newLabel }),
+  });
+};
+
+export const updateNodePosition = async (
+    id: string,
+    x: number,
+    y: number
+): Promise<void> => {
+  await fetch(`${config.API_URL}/nodes/${id}/position`, {
+    method: "PUT",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ x, y }),
+  });
+};
+
+// Методы для edges
 export const fetchEdges = async (): Promise<EdgeData[]> => {
   const res = await fetch(`${config.API_URL}/edges`);
+  return res.json();
+};
+
+export const createEdge = async (
+    edge: Omit<EdgeData, "id">
+): Promise<EdgeData> => {
+  const res = await fetch(`${config.API_URL}/edges`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(edge),
+  });
   return res.json();
 };
 
@@ -54,13 +87,15 @@ export const updateEdge = async (
   });
 };
 
-export const updateNode = async (
-    id: string,
-    newLabel: string
-): Promise<void> => {
+export const deleteNode = async (id: string): Promise<void> => {
   await fetch(`${config.API_URL}/nodes/${id}`, {
-    method: "PUT",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ label: newLabel }),
+    method: "DELETE",
   });
 };
+
+export const deleteEdge = async (id: string): Promise<void> => {
+  await fetch(`${config.API_URL}/edges/${id}`, {
+    method: "DELETE",
+  });
+};
+

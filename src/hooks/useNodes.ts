@@ -1,12 +1,14 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import {
     fetchNodes,
     createNode,
     deleteAllNodes,
     updateNode as updateNodeAPI,
+    updateNodePosition,
+    deleteNode,
     NodeData,
 } from "../services/api";
-import { Node } from "reactflow";
+import { Node, NodeChange, applyNodeChanges } from "reactflow";
 
 export const useNodes = () => {
     const [nodes, setNodes] = useState<Node[]>([]);
@@ -16,15 +18,11 @@ export const useNodes = () => {
             const converted: Node[] = fetched.map((n) => ({
                 id: n.id.toString(),
                 position: { x: n.x, y: n.y },
-                data: {
-                    label: n.label,
-                    onEdit: handleEdit, // 👈 передаём редактор прямо сюда
-                },
+                data: { label: n.label, onEdit: handleEdit },
                 type: "default",
             }));
             setNodes(converted);
         });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     const addNode = async () => {
@@ -38,10 +36,7 @@ export const useNodes = () => {
         const reactflowNode: Node = {
             id: savedNode.id.toString(),
             position: { x: savedNode.x, y: savedNode.y },
-            data: {
-                label: savedNode.label,
-                onEdit: handleEdit,
-            },
+            data: { label: savedNode.label, onEdit: handleEdit },
             type: "default",
         };
 
@@ -50,18 +45,10 @@ export const useNodes = () => {
 
     const handleEdit = async (id: string, newLabel: string) => {
         await updateNodeAPI(id, newLabel);
-
         setNodes((prev) =>
             prev.map((node) =>
                 node.id === id
-                    ? {
-                        ...node,
-                        data: {
-                            ...node.data,
-                            label: newLabel,
-                            onEdit: handleEdit,
-                        },
-                    }
+                    ? { ...node, data: { label: newLabel, onEdit: handleEdit } }
                     : node
             )
         );
@@ -72,5 +59,20 @@ export const useNodes = () => {
         setNodes([]);
     };
 
-    return { nodes, addNode, clearNodes };
+    const onNodesChange = useCallback((changes: NodeChange[]) => {
+        changes.forEach((change) => {
+            if (change.type === "remove") {
+                deleteNode(change.id);
+            } else if (change.type === "position" && change.dragging === false) {
+                const node = nodes.find((n) => n.id === change.id);
+                if (node) {
+                    updateNodePosition(node.id, node.position.x, node.position.y);
+                }
+            }
+        });
+
+        setNodes((nds) => applyNodeChanges(changes, nds));
+    }, [nodes]);
+
+    return { nodes, addNode, clearNodes, onNodesChange, setNodes };
 };

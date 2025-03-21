@@ -4,7 +4,13 @@ import ReactFlow, {
     Controls,
     Background,
     Edge,
-    Node,
+    OnNodesChange,
+    OnEdgesChange,
+    OnConnect,
+    applyNodeChanges,
+    applyEdgeChanges,
+    Connection,
+    NodeDragHandler,
 } from "reactflow";
 import "reactflow/dist/style.css";
 
@@ -13,15 +19,15 @@ import NodeComponent from "./components/NodeComponent";
 import { useNodes } from "./hooks/useNodes";
 import { useEdges } from "./hooks/useEdges";
 import "./styles/styles.css";
+import {deleteEdge, deleteNode} from "./services/api";
 
-// Регистрируем кастомный компонент для узлов
 const nodeTypes = {
     default: NodeComponent,
 };
 
 const App: React.FC = () => {
-    const { nodes, addNode, clearNodes } = useNodes();
-    const { edges, updateEdge } = useEdges();
+    const { nodes, setNodes, addNode, clearNodes, saveNodePosition } = useNodes();
+    const { edges, setEdges, updateEdge, createEdge } = useEdges();
 
     const onEdgeDoubleClick = (
         event: React.MouseEvent,
@@ -36,6 +42,34 @@ const App: React.FC = () => {
         }
     };
 
+    const onNodesChange: OnNodesChange = (changes) => {
+        changes.forEach((change) => {
+            if (change.type === "remove") {
+                deleteNode(change.id); // прямой вызов
+            }
+        });
+        setNodes((nds) => applyNodeChanges(changes, nds));
+    };
+
+    const onEdgesChange: OnEdgesChange = (changes) => {
+        changes.forEach((change) => {
+            if (change.type === "remove") {
+                deleteEdge(change.id); // прямой вызов
+            }
+        });
+        setEdges((eds) => applyEdgeChanges(changes, eds));
+    };
+
+
+    const onConnect: OnConnect = (connection: Connection) => {
+        createEdge(connection);
+    };
+
+    // 👇 Важнейший обработчик, чтобы сохранить позиции после перетаскивания
+    const onNodeDragStop: NodeDragHandler = (event, node) => {
+        saveNodePosition(node.id, node.position.x, node.position.y);
+    };
+
     return (
         <div className="fullscreen">
             <Toolbar onAddNode={addNode} onClear={clearNodes} />
@@ -43,12 +77,17 @@ const App: React.FC = () => {
                 nodes={nodes}
                 edges={edges}
                 nodeTypes={nodeTypes}
+                onNodesChange={onNodesChange}
+                onEdgesChange={onEdgesChange}
+                onConnect={onConnect}
                 onEdgeDoubleClick={onEdgeDoubleClick}
+                onNodeDragStop={onNodeDragStop}
             >
                 <Background />
                 <Controls />
                 <MiniMap />
             </ReactFlow>
+
         </div>
     );
 };
