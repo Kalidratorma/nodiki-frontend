@@ -19,14 +19,14 @@ import NodeComponent from "./components/NodeComponent";
 import { useNodes } from "./hooks/useNodes";
 import { useEdges } from "./hooks/useEdges";
 import "./styles/styles.css";
-import {deleteEdge, deleteNode} from "./services/api";
+import {deleteEdge, deleteNode, updateNodePosition} from "./services/api";
 
 const nodeTypes = {
     default: NodeComponent,
 };
 
 const App: React.FC = () => {
-    const { nodes, setNodes, addNode, clearNodes, saveNodePosition } = useNodes();
+    const { nodes, setNodes, addNode, clearNodes } = useNodes();
     const { edges, setEdges, updateEdge, createEdge } = useEdges();
 
     const onEdgeDoubleClick = (
@@ -67,7 +67,7 @@ const App: React.FC = () => {
 
     // 👇 Важнейший обработчик, чтобы сохранить позиции после перетаскивания
     const onNodeDragStop: NodeDragHandler = (event, node) => {
-        saveNodePosition(node.id, node.position.x, node.position.y);
+        updateNodePosition(node.id, node.position.x, node.position.y);
     };
 
     return (
